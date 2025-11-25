@@ -348,7 +348,6 @@
             
             // Set initial state from user-provided current XP
             document.getElementById('currentSailingXp').value = "2902842";
-            document.getElementById('usernameInput').value = "j oli";
             
             // Initial calculation to set the defaults
             calculateSailing();
@@ -360,7 +359,7 @@
     <div class="max-w-4xl mx-auto card rounded-lg overflow-hidden">
         
         <header class="header-bg p-4 rounded-t-lg">
-            <h1 class="text-3xl font-bold text-center">⛵ Sailing 'Gwenith Glide' Calculator ⛵</h1>
+            <h1 class="text-3xl font-bold text-center">⛵ Gwenith Glide Calculator ⛵</h1>
             <p class="text-center text-sm mt-1 text-gray-200">Calculate laps required to reach your next level or a custom goal.</p>
         </header>
 
@@ -370,7 +369,7 @@
                 <h2 class="text-xl font-semibold mb-4 text-sand">1. Your Current Sailing Data</h2>
                 
                 <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                    <input type="text" id="usernameInput" placeholder="Enter OSRS Username" 
+                    <input type="text" id="usernameInput" placeholder="Enter OSRS Username" autocomplete="off"
                            class="flex-grow p-3 bg-gray-900 text-white rounded-lg border border-gray-700 focus:ring-sand focus:border-sand">
                     <button id="fetchStatsButton" class="bg-sea hover:bg-sea-dark text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out">
                         Fetch Sailing XP
