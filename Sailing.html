@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sailing Gwenith Glide Calculator</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛵</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Sailing-inspired color palette and font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900;display=swap');
+        
+        :root {
+            --color-sea-blue: #004a77;
+            --color-sail-white: #f0f4f8;
+            --color-sand: #ffd700;
+            --color-text-dark: #1f2937;
+            --color-text-light: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b1a2b;
+            color: var(--color-text-light);
+        }
+
+        .card {
+            background-color: #1f3d5a; /* Darker blue background */
+            border: 2px solid var(--color-sea-blue);
+            box-shadow: 0px 0px 15px rgba(0, 74, 119, 0.7);
+        }
+
+        .header-bg {
+            background-color: var(--color-sea-blue);
+            color: var(--color-sail-white);
+        }
+        
+        .bg-sea { 
+            background-color: var(--color-sea-blue); 
+        }
+        .hover\:bg-sea-dark:hover { 
+            background-color: #003a60; 
+        }
+        
+        .input-field {
+            background-color: #0b2238;
+            border: 1px solid #3d5e7d;
+            padding: 8px;
+            border-radius: 4px;
+            color: var(--color-text-light);
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--color-sand);
+            box-shadow: 0 0 0 2px var(--color-sand);
+        }
+        
+        .text-sand { color: var(--color-sand); }
+        .text-sea { color: var(--color-sea-blue); }
+        
+        /* Level Display and Progress Bar */
+        .level-display-area {
+            position: relative;
+            z-index: 10; 
+            padding-bottom: 8px; 
+            height: 48px; 
+        }
+        .xp-progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 6px; 
+            background-color: var(--color-sand); 
+            transition: width 0.3s ease;
+            z-index: 1; 
+        }
+
+        /* Numpad buttons */
+        .numpad-button {
+            padding: 12px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            background-color: #0b2238;
+            border: 1px solid #3d5e7d;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.1s, border-color 0.1s;
+        }
+        .numpad-button:hover {
+            background-color: #3d5e7d;
+            border-color: var(--color-sand);
+        }
+        .numpad-button.clear {
+            background-color: var(--color-sea-blue);
+            color: white;
+        }
+        .numpad-button.clear:hover {
+            background-color: #003a60;
+        }
+        .numpad-display {
+             background-color: #0b2238;
+             border: 1px solid #3d5e7d;
+             border-radius: 4px;
+             min-height: 52px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+        }
+    </style>
+    <script>
+        // --- OSRS 1-99 XP Table ---
+        const OSRS_99_XP_TABLE = [
+            0, 83, 174, 276, 388, 512, 650, 801, 969, 1154, 1358, 1584, 1833, 2107, 2411, 2746, 3115, 3523, 3973, 
+            4470, 5018, 5624, 6291, 7028, 7842, 8740, 9730, 10824, 12031, 13363, 14833, 16456, 18247, 20224, 22406, 
+            24815, 27473, 30408, 33648, 37224, 41171, 45520, 50320, 55648, 61549, 68094, 75340, 83391, 92342, 102300, 
+            113320, 125503, 138980, 153856, 170247, 188292, 208169, 230075, 254238, 280869, 310190, 342438, 377808, 
+            416598, 459137, 505753, 556872, 612983, 674579, 742168, 816365, 897791, 987169, 1085794, 1194998, 1316094, 
+            1450842, 1601053, 1768688, 1955776, 2164868, 2398573, 2660025, 2952084, 3277974, 3641680, 4047719, 4501986, 
+            5010620, 5580590, 6219890, 6937984, 7745771, 8654929, 9679659, 10834316, 12133596, 13034431
+        ];
+        const MAX_99_XP = 13034431;
+        // Corrected index for Sailing: 24th skill after Overall (index 0)
+        const SAILING_SKILL_INDEX = 24; 
+
+        // --- Global State for Numpad ---
+        let currentTargetLevelString = ''; 
+
+        /**
+         * Finds the level for a given amount of XP and calculates progress percentage.
+         */
+        function getLevelAndProgressFromXp(xp) {
+            let level = 1;
+            let xpForLevelStart = 0;
+            let xpForNextLevelStart = OSRS_99_XP_TABLE[1]; 
+            const maxLevelIndex = 99; 
+
+            for (let i = 0; i < maxLevelIndex; i++) {
+                if (xp >= OSRS_99_XP_TABLE[i]) {
+                    level = i + 1;
+                    xpForLevelStart = OSRS_99_XP_TABLE[i];
+                    
+                    if (level === 99) {
+                        xpForNextLevelStart = MAX_99_XP; 
+                        break; 
+                    }
+                    
+                    xpForNextLevelStart = OSRS_99_XP_TABLE[i + 1];
+                } else {
+                    break;
+                }
+            }
+
+            if (level === 99 && xp >= xpForNextLevelStart) {
+                 return { level: 99, xpForNextLevelStart: MAX_99_XP, progressPercent: 100 };
+            }
+
+            const xpGainedInLevel = xp - xpForLevelStart;
+            const xpToNextLevel = xpForNextLevelStart - xpForLevelStart;
+            
+            let progressPercent = 0;
+            if (xpToNextLevel > 0) {
+                progressPercent = (xpGainedInLevel / xpToNextLevel) * 100;
+            }
+            
+            return { 
+                level: level, 
+                xpForNextLevelStart: xpForNextLevelStart, 
+                progressPercent: Math.min(100, progressPercent) 
+            };
+        }
+
+        // --- HISCORES LOOKUP FUNCTION ---
+        async function fetchPlayerSailingXP(username) {
+            const statusElement = document.getElementById('fetchStatus');
+            const xpInput = document.getElementById('currentSailingXp');
+            statusElement.textContent = 'Fetching stats...';
+            statusElement.classList.remove('text-red-400', 'text-green-400', 'text-gray-400');
+
+            // Note: Using a CORS proxy to bypass browser restrictions on cross-origin requests
+            const hiscoresUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(username)}`;
+            const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(hiscoresUrl)}`; 
+
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) {
+                    statusElement.textContent = `Error: Player "${username}" not found or Hiscores API failed.`;
+                    statusElement.classList.add('text-red-400');
+                    return;
+                }
+
+                const data = await response.text();
+                const lines = data.split('\n');
+                
+                if (lines.length > SAILING_SKILL_INDEX) {
+                    const sailingData = lines[SAILING_SKILL_INDEX].split(',');
+                    if (sailingData.length >= 3) {
+                        const sailingXP = parseInt(sailingData[2], 10);
+                        const { level: sailingLevel } = getLevelAndProgressFromXp(sailingXP); 
+                        
+                        xpInput.value = sailingXP;
+                        
+                        calculateSailing(); // Trigger calculation after fetch
+                        statusElement.textContent = `Successfully fetched Lvl ${sailingLevel} / ${sailingXP.toLocaleString()} XP for ${username}.`;
+                        statusElement.classList.add('text-green-400');
+                    } else {
+                        statusElement.textContent = 'Error: Could not parse Sailing XP data.';
+                        statusElement.classList.add('text-red-400');
+                    }
+                } else {
+                    statusElement.textContent = 'Error: Sailing data not found. Ensure the skill is tracked on Hiscores.';
+                    statusElement.classList.add('text-red-400');
+                }
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                statusElement.textContent = 'Error: Network connection failed.';
+                statusElement.classList.add('text-red-400');
+            }
+        }
+
+
+        /**
+         * The main calculation function, triggered on input change.
+         */
+        function calculateSailing() {
+            // 1. Get Inputs
+            const currentSailingXp = +document.getElementById('currentSailingXp').value || 0;
+            const xpPerLap = +document.getElementById('xpPerLap').value || 1; 
+            
+            // 2. Get Current Level Data
+            const { 
+                level: currentLevel, 
+                xpForNextLevelStart, 
+                progressPercent 
+            } = getLevelAndProgressFromXp(currentSailingXp);
+
+            // 3. Update Current Level UI
+            document.getElementById('currentLevelOutput').textContent = currentLevel;
+            document.getElementById('xpProgressBar').style.width = `${progressPercent}%`;
+
+            // --- NEXT LEVEL CALCULATION ---
+            const xpToNextLevel = Math.max(0, xpForNextLevelStart - currentSailingXp);
+            const lapsToNextLevel = Math.ceil(xpToNextLevel / xpPerLap);
+
+            document.getElementById('xpToNextLevelOutput').textContent = xpToNextLevel.toLocaleString();
+            document.getElementById('lapsToNextLevelOutput').textContent = lapsToNextLevel.toLocaleString();
+
+            // --- GOAL LEVEL CALCULATION ---
+            calculateGoalRequirements(currentSailingXp, xpPerLap);
+        }
+
+        /**
+         * Function to calculate goal requirements (laps to a target level).
+         */
+        function calculateGoalRequirements(currentXp, xpPerLap) {
+            const targetLevelElement = document.getElementById('targetLevelDisplay');
+            let targetLevel = parseInt(targetLevelElement.textContent, 10); 
+            
+            if (isNaN(targetLevel) || targetLevel < 2) {
+                targetLevel = 2; 
+            }
+            if (targetLevel > 99) targetLevel = 99;
+            
+            // Determine Target XP (XP needed to START the target level)
+            let targetXp;
+            
+            if (targetLevel === 99) {
+                targetXp = MAX_99_XP; 
+            } else {
+                targetXp = OSRS_99_XP_TABLE[targetLevel]; 
+            }
+            
+            const xpNeededForGoal = Math.max(0, targetXp - currentXp);
+            const lapsNeededForGoal = Math.ceil(xpNeededForGoal / xpPerLap);
+
+            // Update UI
+            document.getElementById('goalXpNeededOutput').textContent = xpNeededForGoal.toLocaleString();
+            
+            const goalLapsElement = document.getElementById('goalLapsNeededOutput');
+            goalLapsElement.textContent = lapsNeededForGoal.toLocaleString();
+            
+            if (xpNeededForGoal === 0) {
+                 goalLapsElement.classList.remove('text-green-400');
+                 goalLapsElement.classList.add('text-blue-400');
+            } else {
+                 goalLapsElement.classList.remove('text-blue-400');
+                 goalLapsElement.classList.add('text-green-400');
+            }
+        }
+
+        // --- NUMPAD LOGIC ---
+        function updateTargetLevel(value) {
+            let newString = currentTargetLevelString + value;
+            
+            if (newString.length > 1 && newString.startsWith('0')) {
+                newString = newString.slice(1);
+            }
+            
+            if (newString.length === 1 && newString === '0') {
+                currentTargetLevelString = ''; 
+                document.getElementById('targetLevelDisplay').textContent = '';
+                calculateSailing();
+                return;
+            }
+
+            currentTargetLevelString = newString;
+            
+            let newLevel = parseInt(newString, 10);
+            
+            if (newLevel > 99) {
+                newLevel = 99;
+                currentTargetLevelString = '99';
+            }
+            
+            document.getElementById('targetLevelDisplay').textContent = currentTargetLevelString;
+            calculateSailing();
+        }
+
+        function clearTargetLevel() {
+            currentTargetLevelString = '';
+            document.getElementById('targetLevelDisplay').textContent = '';
+            calculateSailing();
+        }
+        // --- END NUMPAD LOGIC ---
+
+        // --- Event Listeners and Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hiscores Fetch Listener
+             document.getElementById('fetchStatsButton').addEventListener('click', () => {
+                const username = document.getElementById('usernameInput').value;
+                if (username.trim()) {
+                    fetchPlayerSailingXP(username.trim());
+                } else {
+                    const statusElement = document.getElementById('fetchStatus');
+                    statusElement.textContent = 'Error: Please enter an OSRS username.';
+                    statusElement.classList.remove('text-green-400');
+                    statusElement.classList.add('text-red-400');
+                }
+            });
+
+            // Re-calculate on any key input
+            document.getElementById('currentSailingXp').addEventListener('input', calculateSailing);
+            document.getElementById('xpPerLap').addEventListener('input', calculateSailing);
+            
+            // Set initial state from user-provided current XP
+            document.getElementById('currentSailingXp').value = "2902842";
+            document.getElementById('usernameInput').value = "j oli";
+            
+            // Initial calculation to set the defaults
+            calculateSailing();
+        });
+    </script>
+</head>
+<body class="p-4 sm:p-8 md:p-12 min-h-screen">
+
+    <div class="max-w-4xl mx-auto card rounded-lg overflow-hidden">
+        
+        <header class="header-bg p-4 rounded-t-lg">
+            <h1 class="text-3xl font-bold text-center">⛵ Sailing 'Gwenith Glide' Calculator ⛵</h1>
+            <p class="text-center text-sm mt-1 text-gray-200">Calculate laps required to reach your next level or a custom goal.</p>
+        </header>
+
+        <div class="p-6 space-y-8">
+            
+            <section class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4 text-sand">1. Your Current Sailing Data</h2>
+                
+                <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                    <input type="text" id="usernameInput" placeholder="Enter OSRS Username" 
+                           class="flex-grow p-3 bg-gray-900 text-white rounded-lg border border-gray-700 focus:ring-sand focus:border-sand">
+                    <button id="fetchStatsButton" class="bg-sea hover:bg-sea-dark text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out">
+                        Fetch Sailing XP
+                    </button>
+                </div>
+                <p id="fetchStatus" class="mt-3 text-xs italic text-gray-400">Current Level: 83. Click the button to check Hiscores.</p>
+                
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="currentSailingXp" class="block text-gray-300 font-semibold mb-2">Current Sailing XP (Editable):</label>
+                        <input type="number" id="currentSailingXp" value="2902842" min="0" step="1"
+                               class="w-full p-3 input-field text-center"
+                               placeholder="Enter your current XP">
+                    </div>
+                    <div>
+                        <label for="xpPerLap" class="block text-gray-300 font-semibold mb-2">Average XP per Lap (Gwenith Glide):</label>
+                        <input type="number" id="xpPerLap" value="21400" min="1" step="1"
+                               class="w-full p-3 input-field text-center"
+                               placeholder="e.g., 21400">
+                    </div>
+                </div>
+
+                <div class="mt-6 p-3 bg-gray-900 rounded-lg text-center border border-sea-blue">
+                    <p class="text-sm font-semibold text-gray-300">Current Level:</p>
+                    <div class="level-display-area">
+                        <p id="currentLevelOutput" class="text-4xl font-black text-sand mt-1 relative z-10">1</p>
+                        <div id="xpProgressBar" class="xp-progress-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                
+            </section>
+            
+            <hr class="border-gray-700">
+            
+            <section class="p-4 bg-gray-900 rounded-lg border border-sea-blue">
+                <h2 class="text-xl font-semibold mb-4 text-sand">2. Next Level Milestone</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-3 bg-gray-800 rounded-lg border border-gray-700 text-center">
+                        <p class="text-sm font-semibold text-gray-300">XP Remaining to Next Level (Lvl 84):</p>
+                        <p id="xpToNextLevelOutput" class="text-2xl font-bold text-red-400 mt-1">0</p>
+                    </div>
+
+                    <div class="p-3 bg-gray-800 rounded-lg border border-gray-700 text-center">
+                        <p class="text-sm font-semibold text-gray-300">Laps Required to Next Level:</p>
+                        <p id="lapsToNextLevelOutput" class="text-2xl font-bold text-green-400 mt-1">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="border-gray-700">
+            
+            <section class="p-4 bg-gray-900 rounded-lg border border-sea-blue">
+                <h2 class="text-xl font-semibold mb-4 text-sand">3. Custom Goal Level</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    
+                    <div>
+                        <label class="block text-gray-300 font-semibold mb-2">Desired Sailing Level Goal (2-99):</label>
+                        <div id="targetLevelDisplay" class="numpad-display text-4xl font-black text-sand mb-4"></div>
+
+                        <div class="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+                            <button class="numpad-button" onclick="updateTargetLevel('1')">1</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('2')">2</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('3')">3</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('4')">4</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('5')">5</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('6')">6</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('7')">7</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('8')">8</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('9')">9</button>
+                            
+                            <button class="numpad-button clear" onclick="clearTargetLevel()">CLEAR</button>
+                            <button class="numpad-button" onclick="updateTargetLevel('0')">0</button>
+                            <div class="numpad-button bg-gray-700 cursor-default opacity-50"></div> 
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 text-center">
+                        <div class="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                            <p class="text-sm font-semibold text-gray-300">Total XP Needed to Goal:</p>
+                            <p id="goalXpNeededOutput" class="text-2xl font-bold text-red-400 mt-1">0</p>
+                        </div>
+                        
+                        <div class="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                            <p class="text-sm font-semibold text-gray-300">Total Laps Required to Goal Level:</p>
+                            <p id="goalLapsNeededOutput" class="text-3xl font-bold text-green-400 mt-1">0</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </div>
+
+</body>
+</html>
