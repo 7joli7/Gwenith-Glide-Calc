@@ -346,10 +346,7 @@
             document.getElementById('currentSailingXp').addEventListener('input', calculateSailing);
             document.getElementById('xpPerLap').addEventListener('input', calculateSailing);
             
-            // Set initial state from user-provided current XP
-            document.getElementById('currentSailingXp').value = "2902842";
-            
-            // Initial calculation to set the defaults
+            // Initial calculation to set the defaults (uses value="0" from HTML)
             calculateSailing();
         });
     </script>
@@ -380,7 +377,7 @@
                 <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="currentSailingXp" class="block text-gray-300 font-semibold mb-2">Current Sailing XP (Editable):</label>
-                        <input type="number" id="currentSailingXp" value="2902842" min="0" step="1"
+                        <input type="number" id="currentSailingXp" value="0" min="0" step="1"
                                class="w-full p-3 input-field text-center"
                                placeholder="Enter your current XP">
                     </div>
@@ -409,7 +406,7 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="p-3 bg-gray-800 rounded-lg border border-gray-700 text-center">
-                        <p class="text-sm font-semibold text-gray-300">XP Remaining to Next Level (Lvl 84):</p>
+                        <p class="text-sm font-semibold text-gray-300">XP Remaining to Next Level (Lvl 2):</p>
                         <p id="xpToNextLevelOutput" class="text-2xl font-bold text-red-400 mt-1">0</p>
                     </div>
 
